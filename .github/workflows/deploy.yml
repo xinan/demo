@@ -17,34 +17,45 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          repository: Labos-la-Liberte/defensive-driving
+          repository: xinan/mocha
+          sparse-checkout: 'client'
           ref: main
-          ssh-key: ${{ secrets.DEFENSIVE_DRIVING_TOKEN }}
+          ssh-key: ${{ secrets.DEMO }}
+          
+      # Move client code to root
+      - name: Move to root
+        run: |
+          shopt -s dotglob
+          mv client/* .
+          shopt -u dotglob
+          rm -rf client
 
       # Cache
-      - name: Cache Library
+      - name: Cache Node Modules
         uses: actions/cache@v4
         with:
-          path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          path: node_modules
+          key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
           restore-keys: |
-            Library-
+            node_modules-
 
-      # Build
-      - name: Build Project
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      # Use NodeJS
+      - name: Use NodeJS
+        uses: actions/setup-node@v4
         with:
-          targetPlatform: WebGL
+          node-version: '23.x'
+      
+      # Build
+      - name: Run Build
+        run: |
+          npm ci
+          npm run build -- --base=/demo
 
       # Upload
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/WebGL/WebGL/
+          path: dist/
 
       # Deploy
       - name: Deploy to GitHub Pages
